@@ -139,14 +139,35 @@ export const HotelDashboard = () => {
       return;
     }
 
+    // Debug log
+    console.log('Simulation - Form data:', simulationForm);
+    console.log('Simulation - Hotel data pricing:', hotelData.pricing.slice(0, 5));
+    console.log('Simulation - Partners:', partners);
+
     // Simulation de réservation basée sur les vraies données
     const partner = partners.find(p => p.name === simulationForm.partner);
-    const pricing = hotelData.pricing.filter(p => 
-      p.roomType === simulationForm.roomType && 
-      p.ratePlan === simulationForm.ratePlan &&
-      p.date >= simulationForm.startDate &&
-      p.date <= simulationForm.endDate
-    );
+    
+    // Debug: vérifier les correspondances
+    console.log('Selected partner:', partner);
+    console.log('Looking for roomType:', simulationForm.roomType);
+    console.log('Looking for ratePlan:', simulationForm.ratePlan);
+    
+    const pricing = hotelData.pricing.filter(p => {
+      const roomTypeMatch = p.roomType === simulationForm.roomType;
+      const ratePlanMatch = p.ratePlan === simulationForm.ratePlan;
+      const dateMatch = p.date >= simulationForm.startDate && p.date <= simulationForm.endDate;
+      
+      console.log('Pricing entry check:', {
+        pricing: p,
+        roomTypeMatch,
+        ratePlanMatch,
+        dateMatch
+      });
+      
+      return roomTypeMatch && ratePlanMatch && dateMatch;
+    });
+
+    console.log('Filtered pricing results:', pricing);
 
     const results: SimulationResult[] = pricing.map(p => ({
       roomType: p.roomType,
@@ -422,13 +443,22 @@ export const HotelDashboard = () => {
                     <Select
                       value={simulationForm.ratePlan}
                       onValueChange={(value) => setSimulationForm(prev => ({...prev, ratePlan: value}))}
-                      disabled={!hotelData}
+                      disabled={!hotelData || !simulationForm.roomType}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Choisir un plan" />
                       </SelectTrigger>
                       <SelectContent>
-                        {hotelData?.ratePlans.map(ratePlan => (
+                        {hotelData?.ratePlans
+                          .filter(ratePlan => {
+                            // Filtrer les plans tarifaires selon le type de chambre sélectionné
+                            if (!simulationForm.roomType) return true;
+                            const hasRoomTypeData = hotelData.pricing.some(p => 
+                              p.roomType === simulationForm.roomType && p.ratePlan === ratePlan.code
+                            );
+                            return hasRoomTypeData;
+                          })
+                          .map(ratePlan => (
                           <SelectItem key={ratePlan.code} value={ratePlan.code}>
                             {ratePlan.name}
                           </SelectItem>

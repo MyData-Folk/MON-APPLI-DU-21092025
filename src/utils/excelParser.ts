@@ -57,9 +57,12 @@ export class ExcelParser {
         if (index < values.length && values[index] !== undefined) {
           const value = values[index];
           
+          console.log(`Processing row ${i}, date ${date}, dataType: ${dataType}, value: ${value}`);
+          
           if (dataType === 'Left for sale') {
             // Données de disponibilité
             const available = this.parseAvailability(value);
+            console.log(`Availability for ${roomTypeName} on ${date}: ${available}`);
             availability.push({
               roomType: roomTypeName,
               date: date,
@@ -70,6 +73,7 @@ export class ExcelParser {
             // Données de prix
             const price = parseFloat(value?.toString().replace(',', '.') || '0');
             if (price > 0) {
+              console.log(`Price for ${roomTypeName}, ${ratePlanInfo} on ${date}: ${price}`);
               pricing.push({
                 roomType: roomTypeName,
                 ratePlan: ratePlanInfo.split(' - ')[0],
@@ -104,15 +108,24 @@ export class ExcelParser {
     dateRow.forEach(cell => {
       if (cell) {
         const dateStr = cell.toString();
+        console.log('Processing date cell:', dateStr);
+        
         // Conversion des dates M/D/YY vers YYYY-MM-DD
-        if (dateStr.match(/^\d{1,2}\/\d{1,2}\/\d{2}$/)) {
+        if (dateStr.match(/^\d{1,2}\/\d{1,2}\/\d{2,4}$/)) {
           const [month, day, year] = dateStr.split('/');
-          const fullYear = parseInt(year) < 50 ? 2000 + parseInt(year) : 1900 + parseInt(year);
+          let fullYear = parseInt(year);
+          if (fullYear < 100) {
+            fullYear = fullYear < 50 ? 2000 + fullYear : 1900 + fullYear;
+          }
           const formattedDate = `${fullYear}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
           dates.push(formattedDate);
+          console.log('Converted date:', formattedDate);
+        } else {
+          console.log('Date format not recognized:', dateStr);
         }
       }
     });
+    console.log('Final extracted dates:', dates);
     return dates;
   }
 
