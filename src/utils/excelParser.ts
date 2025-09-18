@@ -110,8 +110,18 @@ export class ExcelParser {
         const dateStr = cell.toString();
         console.log('Processing date cell:', dateStr);
         
+        // Gestion des dates Excel en format numérique (nombre de jours depuis 1900)
+        if (dateStr.match(/^\d{5}$/)) {
+          // Format numérique Excel (ex: 45914)
+          const excelDate = parseInt(dateStr);
+          // Excel compte depuis le 1er janvier 1900 (avec bug leap year)
+          const jsDate = new Date((excelDate - 25569) * 86400 * 1000);
+          const formattedDate = jsDate.toISOString().split('T')[0];
+          dates.push(formattedDate);
+          console.log('Converted Excel numeric date:', formattedDate);
+        }
         // Conversion des dates M/D/YY vers YYYY-MM-DD
-        if (dateStr.match(/^\d{1,2}\/\d{1,2}\/\d{2,4}$/)) {
+        else if (dateStr.match(/^\d{1,2}\/\d{1,2}\/\d{2,4}$/)) {
           const [month, day, year] = dateStr.split('/');
           let fullYear = parseInt(year);
           if (fullYear < 100) {
@@ -120,7 +130,13 @@ export class ExcelParser {
           const formattedDate = `${fullYear}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
           dates.push(formattedDate);
           console.log('Converted date:', formattedDate);
-        } else {
+        } 
+        // Format ISO direct
+        else if (dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
+          dates.push(dateStr);
+          console.log('Direct ISO date:', dateStr);
+        }
+        else {
           console.log('Date format not recognized:', dateStr);
         }
       }
