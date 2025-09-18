@@ -33,6 +33,7 @@ export const HotelDashboard = () => {
     { name: "Agoda", commission: 18, codes: ["OTA-RO-FLEX-20"] },
     { name: "Expedia", commission: 20, codes: ["PKG-EXP-RO-FLEX", "PKG-EXP-RO-NANR", "PKG-EXP-BB-FLEX", "PKG-EXP-BB-NANR"] }
   ]);
+  const [configFile, setConfigFile] = useState<any>(null);
   const [selectedRoomTypes, setSelectedRoomTypes] = useState<string[]>([]);
   const [simulationForm, setSimulationForm] = useState({
     partner: "",
@@ -83,6 +84,47 @@ export const HotelDashboard = () => {
         variant: "destructive",
         title: "Erreur de parsing",
         description: "Impossible d'analyser le fichier Excel. Vérifiez le format.",
+      });
+    }
+  }, [toast]);
+
+  const handleConfigUpload = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (!file.name.toLowerCase().endsWith('.json')) {
+      toast({
+        variant: "destructive",
+        title: "Format invalide",
+        description: "Veuillez sélectionner un fichier JSON",
+      });
+      return;
+    }
+
+    try {
+      const text = await file.text();
+      const config = JSON.parse(text);
+      setConfigFile(config);
+      
+      // Convertir la configuration en partenaires
+      const newPartners: Partner[] = Object.entries(config.partners).map(([name, data]: [string, any]) => ({
+        name,
+        commission: data.commission,
+        codes: data.codes
+      }));
+      
+      setPartners(newPartners);
+
+      toast({
+        title: "Configuration chargée",
+        description: `${newPartners.length} partenaires OTA configurés`,
+      });
+    } catch (error) {
+      console.error('Erreur lors du parsing JSON:', error);
+      toast({
+        variant: "destructive",
+        title: "Erreur de parsing",
+        description: "Impossible d'analyser le fichier JSON. Vérifiez le format.",
       });
     }
   }, [toast]);
@@ -257,12 +299,26 @@ export const HotelDashboard = () => {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    <Input
-                      type="file"
-                      accept=".xlsx,.xls"
-                      onChange={handleFileUpload}
-                      className="cursor-pointer"
-                    />
+                    <div>
+                      <Label htmlFor="excel-file">Fichier Excel Planning</Label>
+                      <Input
+                        id="excel-file"
+                        type="file"
+                        accept=".xlsx,.xls"
+                        onChange={handleFileUpload}
+                        className="cursor-pointer"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="config-file">Configuration OTA (JSON)</Label>
+                      <Input
+                        id="config-file"
+                        type="file"
+                        accept=".json"
+                        onChange={handleConfigUpload}
+                        className="cursor-pointer"
+                      />
+                    </div>
                     <div className="flex gap-2">
                       <Button 
                         variant="outline" 
@@ -272,6 +328,11 @@ export const HotelDashboard = () => {
                         <RefreshCw className="h-4 w-4 mr-2" />
                         Réinitialiser
                       </Button>
+                      {configFile && (
+                        <Badge variant="secondary" className="text-xs">
+                          Config OTA chargée
+                        </Badge>
+                      )}
                     </div>
                   </div>
                 </CardContent>

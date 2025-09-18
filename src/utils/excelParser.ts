@@ -118,9 +118,14 @@ export class ExcelParser {
 
   private static parseAvailability(value: any): number {
     if (value === null || value === undefined || value === '') return 0;
-    if (value === 'X') return -1; // Fermé
-    const num = parseInt(value.toString());
-    return isNaN(num) ? 0 : num;
+    if (value === 'X' || value === 'x') return -1; // Fermé
+    
+    // Conversion de string en nombre
+    const strValue = value.toString().trim();
+    if (strValue === '') return 0;
+    
+    const num = parseFloat(strValue);
+    return isNaN(num) ? 0 : Math.floor(num); // Arrondir vers le bas pour avoir un entier
   }
 
   private static generateCode(name: string): string {
