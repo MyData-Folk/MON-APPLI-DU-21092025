@@ -43,8 +43,8 @@ export const PriceAnalytics = ({ hotelData }: PriceAnalyticsProps) => {
     // Filtrer les données selon les critères
     const filteredPricing = hotelData.pricing.filter(p => {
       const dateInRange = p.date >= analyticsForm.startDate && p.date <= analyticsForm.endDate;
-      const roomTypeMatch = !analyticsForm.roomType || p.roomType === analyticsForm.roomType;
-      const ratePlanMatch = !analyticsForm.ratePlan || p.ratePlan === analyticsForm.ratePlan;
+      const roomTypeMatch = !analyticsForm.roomType || analyticsForm.roomType === "all" || p.roomType === analyticsForm.roomType;
+      const ratePlanMatch = !analyticsForm.ratePlan || analyticsForm.ratePlan === "all" || p.ratePlan === analyticsForm.ratePlan;
       
       return dateInRange && roomTypeMatch && ratePlanMatch;
     });
@@ -169,7 +169,7 @@ export const PriceAnalytics = ({ hotelData }: PriceAnalyticsProps) => {
                   <SelectValue placeholder="Tous les types" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Tous les types</SelectItem>
+                  <SelectItem value="all">Tous les types</SelectItem>
                   {hotelData?.roomTypes.map((room) => (
                     <SelectItem key={room.code} value={room.name}>
                       {room.name}
@@ -189,7 +189,7 @@ export const PriceAnalytics = ({ hotelData }: PriceAnalyticsProps) => {
                   <SelectValue placeholder="Tous les plans" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Tous les plans</SelectItem>
+                  <SelectItem value="all">Tous les plans</SelectItem>
                   {hotelData?.ratePlans.map((plan) => (
                     <SelectItem key={plan.code} value={plan.code}>
                       {plan.name}
