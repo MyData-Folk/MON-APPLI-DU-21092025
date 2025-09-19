@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import { 
@@ -165,7 +166,9 @@ export const HotelDashboard = () => {
         pricing: p,
         roomTypeMatch,
         ratePlanMatch,
-        dateMatch
+        dateMatch,
+        formRoomType: simulationForm.roomType,
+        formRatePlan: simulationForm.ratePlan
       });
       
       return roomTypeMatch && ratePlanMatch && dateMatch;
@@ -647,31 +650,54 @@ export const HotelDashboard = () => {
                   <CardDescription>{availabilityResults.length} jours analysés</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-2 max-h-96 overflow-y-auto">
-                    {availabilityResults.map((result, index) => (
-                      <div key={index} className="p-3 border rounded-lg">
-                        <div className="font-medium mb-2">{result.date}</div>
-                        <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                          {Object.entries(result.roomTypes).map(([roomType, data]) => (
-                            <div key={roomType} className="flex justify-between items-center text-sm">
-                              <span className="truncate">{roomType}</span>
-                              <div className="flex items-center gap-1">
-                                <span className="font-medium">{data.available}</span>
-                                <Badge 
-                                  variant={
-                                    data.status === 'available' ? 'default' :
-                                    data.status === 'sold-out' ? 'destructive' : 'secondary'
-                                  }
-                                  className="text-xs"
-                                >
-                                  {data.status}
-                                </Badge>
-                              </div>
-                            </div>
+                  <div className="overflow-x-auto">
+                    <table className="w-full border-collapse border border-gray-300">
+                      <thead>
+                        <tr className="bg-muted">
+                          <th className="border border-gray-300 p-2 text-left font-medium">Date</th>
+                          {hotelData?.roomTypes.map((room) => (
+                            <th key={room.code} className="border border-gray-300 p-2 text-center font-medium">
+                              {room.name}
+                            </th>
                           ))}
-                        </div>
-                      </div>
-                    ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {availabilityResults.map((result, index) => (
+                          <tr key={index} className="hover:bg-muted/50">
+                            <td className="border border-gray-300 p-2 font-medium">
+                              {new Date(result.date).toLocaleDateString('fr-FR')}
+                            </td>
+                            {hotelData?.roomTypes.map((room) => {
+                              const data = result.roomTypes[room.name];
+                              return (
+                                <td key={room.code} className="border border-gray-300 p-2 text-center">
+                                  {data ? (
+                                    <div className="flex flex-col items-center gap-1">
+                                      <span className="font-medium text-lg">
+                                        {data.available === -1 ? 'X' : data.available}
+                                      </span>
+                                      <Badge 
+                                        variant={
+                                          data.status === 'available' ? 'default' :
+                                          data.status === 'sold-out' ? 'destructive' : 'secondary'
+                                        }
+                                        className="text-xs"
+                                      >
+                                        {data.status === 'available' ? 'Ouvert' :
+                                         data.status === 'sold-out' ? 'Fermé' : 'Limité'}
+                                      </Badge>
+                                    </div>
+                                  ) : (
+                                    <span className="text-muted-foreground">-</span>
+                                  )}
+                                </td>
+                              );
+                            })}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
                 </CardContent>
               </Card>

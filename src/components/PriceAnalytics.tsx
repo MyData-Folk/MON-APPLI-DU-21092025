@@ -38,7 +38,9 @@ export const PriceAnalytics = ({ hotelData }: PriceAnalyticsProps) => {
 
     console.log('Analyzing price disparities...');
     console.log('Form:', analyticsForm);
-    console.log('Available pricing data:', hotelData.pricing.slice(0, 10));
+    console.log('Available pricing data:', hotelData.pricing.slice(0, 5));
+    console.log('Available room types:', hotelData.roomTypes.map(r => r.name));
+    console.log('Available rate plans:', hotelData.ratePlans.map(r => r.code));
 
     // Filtrer les données selon les critères
     const filteredPricing = hotelData.pricing.filter(p => {
