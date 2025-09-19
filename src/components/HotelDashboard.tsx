@@ -157,19 +157,20 @@ export const HotelDashboard = () => {
     console.log('Looking for roomType:', simulationForm.roomType);
     console.log('Looking for ratePlan:', simulationForm.ratePlan);
     
+    // Verify partner has access to this rate plan
+    if (partner && !partner.codes.includes(simulationForm.ratePlan)) {
+      toast({
+        variant: "destructive",
+        title: "Plan tarifaire non autorisé",
+        description: `Le partenaire ${partner.name} n'a pas accès au plan ${simulationForm.ratePlan}`,
+      });
+      return;
+    }
+
     const pricing = hotelData.pricing.filter(p => {
       const roomTypeMatch = p.roomType === simulationForm.roomType;
       const ratePlanMatch = p.ratePlan === simulationForm.ratePlan;
       const dateMatch = p.date >= simulationForm.startDate && p.date <= simulationForm.endDate;
-      
-      console.log('Pricing entry check:', {
-        pricing: p,
-        roomTypeMatch,
-        ratePlanMatch,
-        dateMatch,
-        formRoomType: simulationForm.roomType,
-        formRatePlan: simulationForm.ratePlan
-      });
       
       return roomTypeMatch && ratePlanMatch && dateMatch;
     });
@@ -487,12 +488,21 @@ export const HotelDashboard = () => {
                       <SelectContent>
                         {hotelData?.ratePlans
                           .filter(plan => {
-                            if (!simulationForm.partner) return true;
+                            if (!simulationForm.partner || !simulationForm.roomType) return false;
                             const partner = partners.find(p => p.name === simulationForm.partner);
-                            return partner?.codes.some(code => {
-                              const baseCode = code.split(' - ')[0];
-                              return plan.code.includes(baseCode) || baseCode.includes(plan.code);
-                            });
+                            if (!partner) return false;
+                            
+                            // Exact match with partner codes
+                            const hasCode = partner.codes.includes(plan.code);
+                            
+                            // Check if pricing data exists for this combination
+                            const hasData = hotelData.pricing.some(p => 
+                              p.roomType === simulationForm.roomType && 
+                              p.ratePlan === plan.code
+                            );
+                            
+                            console.log(`Plan ${plan.code}: hasCode=${hasCode}, hasData=${hasData}`);
+                            return hasCode && hasData;
                           })
                           .map((plan) => (
                             <SelectItem key={plan.code} value={plan.code}>
