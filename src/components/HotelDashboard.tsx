@@ -45,6 +45,7 @@ export const HotelDashboard = () => {
     startDate: "",
     endDate: ""
   });
+  const [promotionalDiscount, setPromotionalDiscount] = useState(0);
   const [availabilityForm, setAvailabilityForm] = useState({
     startDate: "",
     endDate: "",
@@ -177,17 +178,22 @@ export const HotelDashboard = () => {
 
     console.log('Filtered pricing results:', pricing);
 
-    const results: SimulationResult[] = pricing.map(p => ({
-      roomType: p.roomType,
-      ratePlan: p.ratePlan,
-      partner: simulationForm.partner,
-      startDate: simulationForm.startDate,
-      endDate: simulationForm.endDate,
-      price: p.price,
-      commission: partner?.commission || 15,
-      netPrice: p.price * (1 - (partner?.commission || 15) / 100),
-      available: true
-    }));
+    const results: SimulationResult[] = pricing.map(p => {
+      const priceAfterCommission = p.price * (1 - (partner?.commission || 15) / 100);
+      const finalPrice = priceAfterCommission * (1 - (promotionalDiscount / 100));
+      
+      return {
+        roomType: p.roomType,
+        ratePlan: p.ratePlan,
+        partner: simulationForm.partner,
+        startDate: simulationForm.startDate,
+        endDate: simulationForm.endDate,
+        price: p.price,
+        commission: partner?.commission || 15,
+        netPrice: finalPrice,
+        available: true
+      };
+    });
 
     setSimulationResults(results);
     toast({
@@ -536,17 +542,25 @@ export const HotelDashboard = () => {
                   </div>
                 </div>
 
-                <div className="flex gap-4">
-                  <Button onClick={simulateReservation} className="flex items-center gap-2">
-                    <Calculator className="h-4 w-4" />
-                    Simuler
-                  </Button>
-                  {simulationResults.length > 0 && (
-                    <Button variant="outline" onClick={exportResults} className="flex items-center gap-2">
-                      <Download className="h-4 w-4" />
-                      Exporter CSV
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>Remise promotionnelle (%)</Label>
+                    <Input
+                      type="number"
+                      min="0"
+                      max="100"
+                      step="0.1"
+                      value={promotionalDiscount}
+                      onChange={(e) => setPromotionalDiscount(parseFloat(e.target.value) || 0)}
+                      placeholder="0"
+                    />
+                  </div>
+                  <div className="flex items-end">
+                    <Button onClick={simulateReservation} className="w-full flex items-center justify-center gap-2">
+                      <Calculator className="h-4 w-4" />
+                      Simuler la Réservation
                     </Button>
-                  )}
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -554,26 +568,120 @@ export const HotelDashboard = () => {
             {/* Résultats de simulation */}
             {simulationResults.length > 0 && (
               <Card className="bg-gradient-card shadow-card">
-                <CardHeader>
-                  <CardTitle>Résultats de Simulation</CardTitle>
-                  <CardDescription>{simulationResults.length} résultats trouvés</CardDescription>
+                <CardHeader className="flex flex-row items-center justify-between">
+                  <div>
+                    <CardTitle>Simulation : {simulationResults[0]?.roomType}</CardTitle>
+                    <CardDescription className="flex items-center gap-2 mt-2">
+                      <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                      Source: {hotelData?.hotelName} - {new Date().toLocaleDateString('fr-FR', { 
+                        weekday: 'long', 
+                        year: 'numeric', 
+                        month: 'long', 
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })}
+                    </CardDescription>
+                  </div>
+                  <Button onClick={exportResults} className="bg-green-600 hover:bg-green-700">
+                    <Download className="h-4 w-4 mr-2" />
+                    Exporter
+                  </Button>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-2 max-h-96 overflow-y-auto">
-                    {simulationResults.map((result, index) => (
-                      <div key={index} className="flex justify-between items-center p-3 border rounded-lg">
-                        <div>
-                          <div className="font-medium">{result.roomType} - {result.ratePlan}</div>
-                          <div className="text-sm text-muted-foreground">
-                            {result.partner} | {result.startDate} → {result.endDate}
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <div className="font-semibold">{result.price.toFixed(2)} € → {result.netPrice.toFixed(2)} €</div>
-                          <div className="text-sm text-muted-foreground">Commission: {result.commission}%</div>
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="bg-gray-50">
+                          <TableHead>Date</TableHead>
+                          <TableHead>Prix Brut (€)</TableHead>
+                          <TableHead>Prix Net (€)</TableHead>
+                          <TableHead>Stock</TableHead>
+                          <TableHead>Disponibilité</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {simulationResults.map((result, index) => {
+                          // Create date range from start to end date
+                          const dates = [];
+                          const start = new Date(result.startDate);
+                          const end = new Date(result.endDate);
+                          for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+                            dates.push(new Date(d).toLocaleDateString('fr-FR', { 
+                              weekday: 'short', 
+                              day: 'numeric', 
+                              month: 'short' 
+                            }));
+                          }
+                          
+                          return dates.map((date, dateIndex) => (
+                            <TableRow key={`${index}-${dateIndex}`}>
+                              <TableCell className="font-medium">{date}</TableCell>
+                              <TableCell>{result.price.toFixed(2)} €</TableCell>
+                              <TableCell className="text-blue-600 font-medium">{result.netPrice.toFixed(2)} €</TableCell>
+                              <TableCell>{result.available ? "3" : "0"}</TableCell>
+                              <TableCell>
+                                {result.available ? (
+                                  <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs font-medium">
+                                    Disponible
+                                  </span>
+                                ) : (
+                                  <span className="bg-red-100 text-red-800 px-2 py-1 rounded-full text-xs font-medium">
+                                    Non disponible
+                                  </span>
+                                )}
+                              </TableCell>
+                            </TableRow>
+                          ));
+                        })}
+                      </TableBody>
+                    </Table>
+                  </div>
+
+                  {/* Summary Section */}
+                  <div className="mt-6 space-y-4 border-t pt-4">
+                    <div className="flex items-center gap-2">
+                      <input 
+                        type="checkbox" 
+                        checked={true}
+                        readOnly
+                        className="rounded" 
+                      />
+                      <span className="text-sm">
+                        Appliquer commission ({simulationResults[0]?.partner} ({simulationResults[0]?.commission}%) {simulationResults[0]?.commission}%)
+                      </span>
+                    </div>
+
+                    {promotionalDiscount > 0 && (
+                      <div className="text-sm text-gray-600">
+                        Remise promotionnelle ({promotionalDiscount}%): {promotionalDiscount}
+                      </div>
+                    )}
+
+                    <div className="grid grid-cols-3 gap-6 pt-4">
+                      <div className="text-right">
+                        <div className="text-sm text-gray-600">Sous-Total Brut:</div>
+                        <div className="text-lg font-bold">
+                          {simulationResults.reduce((sum, result) => sum + result.price, 0).toFixed(2)} €
                         </div>
                       </div>
-                    ))}
+                      <div className="text-right">
+                        <div className="text-sm text-red-600">Total Commission:</div>
+                        <div className="text-lg font-bold text-red-600">
+                          -{simulationResults.reduce((sum, result) => {
+                            const priceAfterCommission = result.price * (result.commission / 100);
+                            const discountAmount = (result.price - priceAfterCommission) * (promotionalDiscount / 100);
+                            return sum + priceAfterCommission + discountAmount;
+                          }, 0).toFixed(2)} €
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-sm text-blue-600 font-medium">Total Net Final:</div>
+                        <div className="text-xl font-bold text-blue-600">
+                          {simulationResults.reduce((sum, result) => sum + result.netPrice, 0).toFixed(2)} €
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </CardContent>
               </Card>

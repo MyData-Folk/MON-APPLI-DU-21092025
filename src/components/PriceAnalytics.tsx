@@ -56,6 +56,9 @@ export const PriceAnalytics = ({ hotelData }: PriceAnalyticsProps) => {
   });
   const [selectedRatePlans, setSelectedRatePlans] = useState<SelectedRatePlan[]>([]);
   const [strategyData, setStrategyData] = useState<PricingStrategy[]>([]);
+  
+  // New state for view mode
+  const [viewMode, setViewMode] = useState<"comparison" | "table">("comparison");
 
   const analyzeDisparities = () => {
     if (!hotelData || !analyticsForm.startDate || !analyticsForm.endDate) return;
@@ -236,6 +239,26 @@ export const PriceAnalytics = ({ hotelData }: PriceAnalyticsProps) => {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          <div className="mb-4">
+            <Label className="block text-sm font-medium mb-2">Mode d'affichage</Label>
+            <div className="flex gap-2">
+              <Button
+                variant={viewMode === "comparison" ? "default" : "outline"}
+                onClick={() => setViewMode("comparison")}
+                size="sm"
+              >
+                Comparaison
+              </Button>
+              <Button
+                variant={viewMode === "table" ? "default" : "outline"}
+                onClick={() => setViewMode("table")}
+                size="sm"
+              >
+                Tableau par dates
+              </Button>
+            </div>
+          </div>
+          
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <Label htmlFor="strategy-start-date">Date de début</Label>
@@ -344,71 +367,161 @@ export const PriceAnalytics = ({ hotelData }: PriceAnalyticsProps) => {
       {/* Résultats de la stratégie tarifaire */}
       {strategyData.length > 0 && (
         <>
-          <Card>
-            <CardHeader>
-              <CardTitle>Graphique de Comparaison Tarifaire</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="h-80">
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={getStrategyChartData()}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="date" />
-                    <YAxis />
-                    <Tooltip />
-                    <Legend />
-                    {getUniqueRatePlanCombos().map((combo, index) => (
-                      <Line 
-                        key={combo}
-                        type="monotone" 
-                        dataKey={combo} 
-                        stroke={getRandomColor(index)} 
-                        name={combo.replace('-', ' - ')}
-                        strokeWidth={2}
-                      />
-                    ))}
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
-            </CardContent>
-          </Card>
+          {viewMode === "comparison" ? (
+            <>
+              <Card>
+                <CardHeader>
+                  <CardTitle>Graphique de Comparaison Tarifaire</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="h-80">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart data={getStrategyChartData()}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="date" />
+                        <YAxis />
+                        <Tooltip />
+                        <Legend />
+                        {getUniqueRatePlanCombos().map((combo, index) => (
+                          <Line 
+                            key={combo}
+                            type="monotone" 
+                            dataKey={combo} 
+                            stroke={getRandomColor(index)} 
+                            name={combo.replace('-', ' - ')}
+                            strokeWidth={2}
+                          />
+                        ))}
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
+                </CardContent>
+              </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Tableau des Tarifs</CardTitle>
-              <CardDescription>
-                {strategyData.length} résultats trouvés
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="max-h-96 overflow-y-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Date</TableHead>
-                      <TableHead>Type de chambre</TableHead>
-                      <TableHead>Plan tarifaire</TableHead>
-                      <TableHead className="text-right">Prix</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {strategyData.map((item, index) => (
-                      <TableRow key={index}>
-                        <TableCell>{item.date}</TableCell>
-                        <TableCell>{item.roomType}</TableCell>
-                        <TableCell>
-                          {hotelData?.ratePlans.find(p => p.code === item.ratePlan)?.name || item.ratePlan}
-                        </TableCell>
-                        <TableCell className="text-right font-medium">
-                          {item.price.toFixed(2)} €
-                        </TableCell>
+              <Card>
+                <CardHeader>
+                  <CardTitle>Tableau des Tarifs</CardTitle>
+                  <CardDescription>
+                    {strategyData.length} résultats trouvés
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="max-h-96 overflow-y-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Date</TableHead>
+                          <TableHead>Type de chambre</TableHead>
+                          <TableHead>Plan tarifaire</TableHead>
+                          <TableHead className="text-right">Prix</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {strategyData.map((item, index) => (
+                          <TableRow key={index}>
+                            <TableCell>{item.date}</TableCell>
+                            <TableCell>{item.roomType}</TableCell>
+                            <TableCell>
+                              {hotelData?.ratePlans.find(p => p.code === item.ratePlan)?.name || item.ratePlan}
+                            </TableCell>
+                            <TableCell className="text-right font-medium">
+                              {item.price.toFixed(2)} €
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </CardContent>
+              </Card>
+            </>
+          ) : (
+            <Card>
+              <CardHeader>
+                <CardTitle>Tableau par dates et plans tarifaires</CardTitle>
+                <CardDescription>
+                  {strategyData.length} résultats trouvés
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="min-w-[200px] bg-gray-50">Plan tarifaire / Date</TableHead>
+                        {Array.from(new Set(strategyData.map(item => item.date)))
+                          .sort()
+                          .map(date => (
+                            <TableHead key={date} className="text-center min-w-[120px] bg-gray-50">
+                              {new Date(date).toLocaleDateString('fr-FR', { 
+                                day: '2-digit', 
+                                month: 'short' 
+                              })}
+                            </TableHead>
+                          ))}
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            </CardContent>
-          </Card>
+                    </TableHeader>
+                    <TableBody>
+                      <TableRow className="border-b-2">
+                        <TableCell className="font-bold text-gray-700 bg-gray-100">Date</TableCell>
+                        {Array.from(new Set(strategyData.map(item => item.date)))
+                          .sort()
+                          .map(date => (
+                            <TableCell key={date} className="text-center font-medium bg-gray-100">
+                              {new Date(date).toLocaleDateString('fr-FR')}
+                            </TableCell>
+                          ))}
+                      </TableRow>
+                      {Array.from(new Set(strategyData.map(item => item.ratePlan))).map(ratePlan => (
+                        <TableRow key={ratePlan}>
+                          <TableCell className="font-medium bg-gray-50">
+                            {hotelData?.ratePlans.find(p => p.code === ratePlan)?.name || ratePlan}
+                          </TableCell>
+                          {Array.from(new Set(strategyData.map(item => item.date)))
+                            .sort()
+                            .map(date => {
+                              const priceData = strategyData.find(
+                                item => item.ratePlan === ratePlan && item.date === date
+                              );
+                              return (
+                                <TableCell key={date} className="text-center">
+                                  {priceData ? `${priceData.price.toFixed(2)} €` : '-'}
+                                </TableCell>
+                              );
+                            })}
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+
+                <div className="mt-6 h-80">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={getStrategyChartData()}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="date" tickFormatter={(date) => new Date(date).toLocaleDateString('fr-FR')} />
+                      <YAxis />
+                      <Tooltip 
+                        labelFormatter={(date) => new Date(date).toLocaleDateString('fr-FR')}
+                        formatter={(value: number) => [`${value.toFixed(2)} €`, 'Prix']}
+                      />
+                      <Legend />
+                      {getUniqueRatePlanCombos().map((combo, index) => (
+                        <Line 
+                          key={combo}
+                          type="monotone" 
+                          dataKey={combo} 
+                          stroke={getRandomColor(index)} 
+                          name={combo.replace('-', ' - ')}
+                          strokeWidth={2}
+                        />
+                      ))}
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </>
       )}
 
