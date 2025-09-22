@@ -542,25 +542,11 @@ export const HotelDashboard = () => {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label>Remise promotionnelle (%)</Label>
-                    <Input
-                      type="number"
-                      min="0"
-                      max="100"
-                      step="0.1"
-                      value={promotionalDiscount}
-                      onChange={(e) => setPromotionalDiscount(parseFloat(e.target.value) || 0)}
-                      placeholder="0"
-                    />
-                  </div>
-                  <div className="flex items-end">
-                    <Button onClick={simulateReservation} className="w-full flex items-center justify-center gap-2">
-                      <Calculator className="h-4 w-4" />
-                      Simuler la Réservation
-                    </Button>
-                  </div>
+                <div className="flex items-end">
+                  <Button onClick={simulateReservation} className="w-full flex items-center justify-center gap-2">
+                    <Calculator className="h-4 w-4" />
+                    Simuler la Réservation
+                  </Button>
                 </div>
               </CardContent>
             </Card>
@@ -641,24 +627,30 @@ export const HotelDashboard = () => {
                   {/* Summary Section */}
                   <div className="mt-6 space-y-4 border-t pt-4">
                     <div className="flex items-center gap-2">
-                      <input 
-                        type="checkbox" 
+                      <Checkbox 
+                        id="applyCommission"
                         checked={true}
-                        readOnly
-                        className="rounded" 
                       />
-                      <span className="text-sm">
-                        Appliquer commission ({simulationResults[0]?.partner} ({simulationResults[0]?.commission}%) {simulationResults[0]?.commission}%)
-                      </span>
+                      <Label htmlFor="applyCommission" className="text-sm">
+                        Appliquer commission ({simulationResults[0]?.partner} ({simulationResults[0]?.commission}%))
+                      </Label>
                     </div>
 
-                    {promotionalDiscount > 0 && (
-                      <div className="text-sm text-gray-600">
-                        Remise promotionnelle ({promotionalDiscount}%): {promotionalDiscount}
-                      </div>
-                    )}
+                    <div className="space-y-2">
+                      <Label className="text-sm">Remise promotionnelle (%):</Label>
+                      <Input
+                        type="number"
+                        min="0"
+                        max="100"
+                        step="0.1"
+                        value={promotionalDiscount}
+                        onChange={(e) => setPromotionalDiscount(parseFloat(e.target.value) || 0)}
+                        placeholder="0"
+                        className="w-24"
+                      />
+                    </div>
 
-                    <div className="grid grid-cols-3 gap-6 pt-4">
+                    <div className="grid grid-cols-3 gap-6 pt-4 bg-muted/30 p-4 rounded">
                       <div className="text-right">
                         <div className="text-sm text-gray-600">Sous-Total Brut:</div>
                         <div className="text-lg font-bold">
@@ -670,8 +662,7 @@ export const HotelDashboard = () => {
                         <div className="text-lg font-bold text-red-600">
                           -{simulationResults.reduce((sum, result) => {
                             const priceAfterCommission = result.price * (result.commission / 100);
-                            const discountAmount = (result.price - priceAfterCommission) * (promotionalDiscount / 100);
-                            return sum + priceAfterCommission + discountAmount;
+                            return sum + priceAfterCommission;
                           }, 0).toFixed(2)} €
                         </div>
                       </div>
@@ -724,7 +715,23 @@ export const HotelDashboard = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Types de chambres</Label>
+                  <div className="flex items-center justify-between">
+                    <Label>Types de chambres</Label>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => {
+                        const allRoomTypes = hotelData?.roomTypes.map(room => room.name) || [];
+                        setAvailabilityForm(prev => ({
+                          ...prev,
+                          roomTypes: prev.roomTypes.length === allRoomTypes.length ? [] : allRoomTypes
+                        }));
+                      }}
+                      className="text-blue-600"
+                    >
+                      {availabilityForm.roomTypes.length === hotelData?.roomTypes.length ? "Tout désélectionner" : "Tout sélectionner"}
+                    </Button>
+                  </div>
                   <div className="flex flex-wrap gap-2">
                     {hotelData?.roomTypes.map((room) => (
                       <div key={room.code} className="flex items-center space-x-2">
@@ -753,9 +760,9 @@ export const HotelDashboard = () => {
                   </div>
                 </div>
 
-                <Button onClick={checkAvailability} className="flex items-center gap-2">
+                <Button onClick={checkAvailability} className="w-full bg-blue-600 hover:bg-blue-700 flex items-center gap-2">
                   <RefreshCw className="h-4 w-4" />
-                  Vérifier
+                  Vérifier les Disponibilités
                 </Button>
               </CardContent>
             </Card>
@@ -763,52 +770,58 @@ export const HotelDashboard = () => {
             {/* Résultats de disponibilité */}
             {availabilityResults.length > 0 && (
               <Card className="bg-gradient-card shadow-card">
-                <CardHeader>
-                  <CardTitle>Disponibilités</CardTitle>
-                  <CardDescription>{availabilityResults.length} jours analysés</CardDescription>
+                <CardHeader className="flex flex-row items-center justify-between">
+                  <div>
+                    <CardTitle>Tableau des Disponibilités</CardTitle>
+                    <CardDescription className="flex items-center gap-2 mt-2">
+                      <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                      Source: FOLKESTONE OPERA - {new Date().toLocaleDateString('fr-FR', { 
+                        weekday: 'long', 
+                        year: 'numeric', 
+                        month: 'long', 
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        second: '2-digit'
+                      })}
+                    </CardDescription>
+                  </div>
+                  <Button className="bg-green-600 hover:bg-green-700">
+                    <Download className="h-4 w-4 mr-2" />
+                    Exporter
+                  </Button>
                 </CardHeader>
                 <CardContent>
                   <div className="overflow-x-auto">
                     <table className="w-full border-collapse border border-gray-300">
                       <thead>
                         <tr className="bg-muted">
-                          <th className="border border-gray-300 p-2 text-left font-medium">Date</th>
-                          {hotelData?.roomTypes.map((room) => (
-                            <th key={room.code} className="border border-gray-300 p-2 text-center font-medium">
-                              {room.name}
+                          <th className="border border-gray-300 p-3 text-left font-medium">Type de Chambre</th>
+                          {availabilityResults.slice(0, 7).map((result) => (
+                            <th key={result.date} className="border border-gray-300 p-3 text-center font-medium">
+                              {new Date(result.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
                             </th>
                           ))}
                         </tr>
                       </thead>
                       <tbody>
-                        {availabilityResults.map((result, index) => (
-                          <tr key={index} className="hover:bg-muted/50">
-                            <td className="border border-gray-300 p-2 font-medium">
-                              {new Date(result.date).toLocaleDateString('fr-FR')}
+                        {hotelData?.roomTypes.map((room) => (
+                          <tr key={room.code} className="hover:bg-muted/50">
+                            <td className="border border-gray-300 p-3 font-medium">
+                              {room.name}
                             </td>
-                            {hotelData?.roomTypes.map((room) => {
+                            {availabilityResults.slice(0, 7).map((result) => {
                               const data = result.roomTypes[room.name];
+                              const available = data?.available || 0;
                               return (
-                                <td key={room.code} className="border border-gray-300 p-2 text-center">
-                                  {data ? (
-                                    <div className="flex flex-col items-center gap-1">
-                                      <span className="font-medium text-lg">
-                                        {data.available === -1 ? 'X' : data.available}
-                                      </span>
-                                      <Badge 
-                                        variant={
-                                          data.status === 'available' ? 'default' :
-                                          data.status === 'sold-out' ? 'destructive' : 'secondary'
-                                        }
-                                        className="text-xs"
-                                      >
-                                        {data.status === 'available' ? 'Ouvert' :
-                                         data.status === 'sold-out' ? 'Fermé' : 'Limité'}
-                                      </Badge>
-                                    </div>
-                                  ) : (
-                                    <span className="text-muted-foreground">-</span>
-                                  )}
+                                <td key={result.date} className="border border-gray-300 p-3 text-center">
+                                  <span className={`inline-flex items-center justify-center w-8 h-8 rounded text-white text-sm font-bold ${
+                                    available >= 3 ? 'bg-green-500' :
+                                    available >= 1 ? 'bg-orange-400' :
+                                    'bg-red-500'
+                                  }`}>
+                                    {available}
+                                  </span>
                                 </td>
                               );
                             })}
