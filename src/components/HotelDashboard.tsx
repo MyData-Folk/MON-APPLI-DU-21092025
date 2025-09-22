@@ -46,6 +46,7 @@ export const HotelDashboard = () => {
     endDate: ""
   });
   const [promotionalDiscount, setPromotionalDiscount] = useState(0);
+  const [applyCommission, setApplyCommission] = useState(true);
   const [availabilityForm, setAvailabilityForm] = useState({
     startDate: "",
     endDate: "",
@@ -178,27 +179,43 @@ export const HotelDashboard = () => {
 
     console.log('Filtered pricing results:', pricing);
 
-    const results: SimulationResult[] = pricing.map(p => {
-      const priceAfterCommission = p.price * (1 - (partner?.commission || 15) / 100);
-      const finalPrice = priceAfterCommission * (1 - (promotionalDiscount / 100));
-      
-      return {
-        roomType: p.roomType,
-        ratePlan: p.ratePlan,
-        partner: simulationForm.partner,
-        startDate: simulationForm.startDate,
-        endDate: simulationForm.endDate,
-        price: p.price,
-        commission: partner?.commission || 15,
-        netPrice: finalPrice,
-        available: true
-      };
-    });
+    // Calculer le prix moyen pour la période sélectionnée
+    const totalPrice = pricing.reduce((sum, p) => sum + p.price, 0);
+    const averagePrice = pricing.length > 0 ? totalPrice / pricing.length : 0;
+    const totalNights = pricing.length;
 
-    setSimulationResults(results);
+    if (pricing.length === 0) {
+      toast({
+        variant: "destructive",
+        title: "Aucun tarif trouvé",
+        description: "Aucun tarif disponible pour cette combinaison",
+      });
+      return;
+    }
+
+    // Créer un seul résultat avec le prix moyen
+    const priceAfterCommission = applyCommission 
+      ? averagePrice * (1 - (partner?.commission || 15) / 100)
+      : averagePrice;
+    const finalPrice = priceAfterCommission * (1 - (promotionalDiscount / 100));
+    
+    const result: SimulationResult = {
+      roomType: simulationForm.roomType,
+      ratePlan: simulationForm.ratePlan,
+      partner: simulationForm.partner,
+      startDate: simulationForm.startDate,
+      endDate: simulationForm.endDate,
+      price: averagePrice,
+      commission: applyCommission ? (partner?.commission || 15) : 0,
+      netPrice: finalPrice,
+      available: true,
+      nights: totalNights
+    };
+
+    setSimulationResults([result]);
     toast({
       title: "Simulation terminée",
-      description: `${results.length} résultats trouvés`,
+      description: `1 résultat trouvé pour ${totalNights} nuits`,
     });
   }, [hotelData, simulationForm, partners, toast]);
 
@@ -629,7 +646,8 @@ export const HotelDashboard = () => {
                     <div className="flex items-center gap-2">
                       <Checkbox 
                         id="applyCommission"
-                        checked={true}
+                        checked={applyCommission}
+                        onCheckedChange={(checked) => setApplyCommission(!!checked)}
                       />
                       <Label htmlFor="applyCommission" className="text-sm">
                         Appliquer commission ({simulationResults[0]?.partner} ({simulationResults[0]?.commission}%))

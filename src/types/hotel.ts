@@ -51,6 +51,7 @@ export interface SimulationResult {
   commission: number;
   netPrice: number;
   available: boolean;
+  nights?: number;
 }
 
 export interface AvailabilityResult {
